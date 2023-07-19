@@ -17,6 +17,11 @@ type
     FPassword: string;
     FPort: Integer;
     Flogger: string;
+    FDb1:string;
+    FDb2:string;
+    FDb3:string;
+    FDb4:string;
+    FDb5:string;
 
     FConnection: TZConnection;
     FDataSource: TDataSource;
@@ -31,6 +36,7 @@ type
     function Logger:string;
     property DataSource: TDataSource read FDataSource write FDataSource;
     function GetMariaDBLibraryLocation: string;
+    function SetDb1:string;
   end;
 
 implementation
@@ -49,6 +55,11 @@ begin
     FDatabaseName := JsonData.FindPath('database').AsString;
     FUserName := JsonData.FindPath('username').AsString;
     FPassword := JsonData.FindPath('password').AsString;
+    FDb1      := JsonData.FindPath('db1').AsString;
+    FDb2      := JsonData.FindPath('db2').AsString;
+    FDb3      := JsonData.FindPath('db3').AsString;
+    FDb4      := JsonData.FindPath('db4').AsString;
+    FDb5      := JsonData.FindPath('db5').AsString;
   finally
     JsonData.Free;
     jsonFile.Free;
@@ -192,6 +203,11 @@ begin
   {$ENDIF}
 end;
 
+function TConnect.SetDb1: string;
+begin
+  Result:= FDb1;
+end;
+
 {
   ctrl+Shift+c = membuat function baru
 
@@ -207,7 +223,7 @@ begin
    try
     if Connect.Connect then
     begin
-      Query := Connect.ExecuteQuery('SELECT * FROM hrms.ms_forms');
+      Query := Connect.ExecuteQuery('SELECT * FROM mytable');
       if Query <> nil then
       begin
         // menggunakan TDataSource yang telah ditambahkan

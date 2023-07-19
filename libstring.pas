@@ -16,6 +16,8 @@ Function str_koma_1(nilai : double) : string;
 Function nilai_rp(nilai : string) : Int64;
 Function nilai_koma(nilai : string) : double;
 Function dalam_str (nilai : double; smatauang:string='RUPIAH') : string ;
+Function posisi_str(teks, kt : string ; posisi : integer = 1 ) : integer ;
+
 
 implementation
 
@@ -192,6 +194,22 @@ begin
 
   result := trim(sMinus)+' '+trim(hasil)+' '+smatauang ;
 end ;
+
+function posisi_str(teks, kt: string; posisi: integer): integer;
+var
+  hasil, aposisi, plenteks : integer ;
+
+begin
+  hasil        := 0 ;
+  teks         := trim(teks) ;
+  plenteks     := length(kt) ;
+
+  for aposisi := posisi to length(teks) do
+  begin
+    if ( copy(teks,aposisi,plenteks) = kt ) and (hasil = 0) then hasil := aposisi ;
+  end ;
+  result := hasil ;
+end;
 
 
 end.

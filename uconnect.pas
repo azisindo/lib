@@ -17,6 +17,11 @@ type
     FPassword: string;
     FPort: Integer;
     Flogger: string;
+    FDb1:string;
+    FDb2:string;
+    FDb3:string;
+    FDb4:string;
+    FDb5:string;
 
     FConnection: TZConnection;
     FDataSource: TDataSource;
@@ -31,6 +36,7 @@ type
     function Logger:string;
     property DataSource: TDataSource read FDataSource write FDataSource;
     function GetMariaDBLibraryLocation: string;
+    function SetDb1:string;
   end;
 
 implementation
@@ -190,6 +196,11 @@ begin
   {$IFDEF WINDOWS}
     Result := 'C:\Program Files\MariaDB 11.1\lib\libmariadb.dll'; // Ubah sesuai dengan lokasi library MariaDB di Windows
   {$ENDIF}
+end;
+
+function TConnect.SetDb1: string;
+begin
+  Result:= FDb1;
 end;
 
 {
