@@ -2,7 +2,7 @@
 
 --------------------------------------------------------------
 - Cara pemanggilan LOV dari Forms lain                       -
-- Uses tambahan di form pemanggi LOV -> uconnect,Db,ZDataset;-
+- Uses tambahan di form pemanggi LOV -> uconnect,Db,ZDataset,uSetVarGlobal;-
 - By Azis - dev2023                                          -
 --------------------------------------------------------------
 
@@ -51,18 +51,17 @@ unit ULov;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls,
+  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls, StrUtils,
   DBGrids,Db, BCMaterialDesignButton,LCLType,uconnect,ZDataset,uSetVarGlobal,libstring  ;
 
 type
   { TFrmLov }
-  TLOVSelectValuesEvent = procedure(const Values: TStringList) of object;
+  //TLOVSelectValuesEvent = procedure(const Values: TStringList) of object;
+  TLOVSelectValuesEvent = function: TStringList of object;
 
   TFrmLov = class(TForm)
-    BtnSearch: TBCMaterialDesignButton;
     DbgLov: TDBGrid;
     EdCariLov: TEdit;
-    PnlBtnLov: TPanel;
     PnlAtas: TPanel;
     PnlBawah: TPanel;
     PnlEdLov: TPanel;
@@ -79,10 +78,16 @@ type
     FConnect:Tconnect;
     FSQLQuery: String;
     FJudulLov: String;
+    Fambil:string;
+    function GetSelectedValues: TStringList; // Ubah menjadi function yang mengembalikan TStringList
+    Procedure Reresh_caption;
+    procedure  CustomSplitString(const InputStr, Delimiter: string; var SubStr1, SubStr2: string);
+
   public
      property OnSelectValues: TLOVSelectValuesEvent read FOnSelectValues write FOnSelectValues;
      property SetJudulLov:string  read  FJudulLov write FJudulLov;
      property SqlLov:string read  FSQLQuery write FSQLQuery;
+     property LovSelectedValues: TStringList read GetSelectedValues; // Property untuk mengambil nilai yang dipilih
   end;
 
 var
@@ -97,10 +102,9 @@ implementation
 procedure TFrmLov.DbgLovKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 var
- addValues : TStringList;
- dbgLoop   : Integer;
-
+ vSelectedValues: TStringList;
 begin
+  Fambil:='F';
   if key=VK_RETURN then
     begin
       PnlAtas.Visible:=True;
@@ -108,36 +112,20 @@ begin
     end;
   if key=  VK_ADD then
     begin
+      Fambil :='T';
       if DbgLov.DataSource.DataSet.RecordCount> 0 then
-        begin
-          addValues :=TStringList.Create;
-          try
-            // Mengumpulkan nilai dari semua kolom di DBGrid ke dalam TStringList
-            for dbgLoop := 0 to DbgLov.Columns.Count - 1 do
-            begin
-              if DbgLov.Columns[dbgLoop].Field <> nil then
-                addValues.Add(DbgLov.Columns[dbgLoop].Field.AsString)
-              else
-                addValues.Add('');
-            end;
-
-            // Memanggil event OnSelectValues dengan TStringList yang berisi nilai dari semua kolom
-            if Assigned(FOnSelectValues) then
-              FOnSelectValues(addValues);
-
-          finally
-             addValues.Free;
-          end;
-          Close;
-        end;
+      begin
+        if Assigned(FOnSelectValues) then
+          VSelectedValues := FOnSelectValues(); // Memanggil function OnSelectValues untuk mendapatkan TStringList
+        Close;
+      end;
     end;
+
   if key= VK_ESCAPE  then
     Close;
 
   if (Key=VK_F1)  and (ssShift in Shift) then
     ShowMessage('F1 on dev');
-
-
 end;
 
 procedure TFrmLov.EdCariLovExit(Sender: TObject);
@@ -145,7 +133,7 @@ var
  vKey: Word;
 begin
   vKey:=VK_RETURN;
-
+  EdCariLovKeyDown(Sender,vKey,[]);
 end;
 
 procedure TFrmLov.EdCariLovKeyDown(Sender: TObject; var Key: Word;
@@ -208,6 +196,8 @@ begin
       end;
 
       DbgLov.SelectedIndex:=v_cur;
+      Reresh_caption
+
     end;
 end;
 
@@ -234,8 +224,94 @@ begin
   finally
    FConnect.Free;
   end;
+  Reresh_caption;
   DbgLov.SetFocus;
 end;
+
+function TFrmLov.GetSelectedValues: TStringList;
+var
+  SelectedValues: TStringList;
+  I: Integer;
+begin
+
+    SelectedValues := TStringList.Create;
+    try
+      If Fambil='T' Then
+        begin
+          for I := 0 to DbgLov.Columns.Count - 1 do
+          begin
+              if DbgLov.Columns[I].Field <> nil then
+                SelectedValues.Add(DbgLov.Columns[I].Field.AsString)
+              else
+                SelectedValues.Add('');
+          end;
+        end
+      else
+       SelectedValues.Add('');
+
+      Result := SelectedValues;
+    except
+      SelectedValues.Free;
+      //raise;
+    end;
+
+end;
+
+procedure TFrmLov.Reresh_caption;
+var
+  v_lebar, v_kolom : integer ;
+  v_hdr2  : string;
+  v_hdr1  : string ;
+begin
+  v_hdr1               := FJudulLov;
+  v_lebar              := 0 ;
+  v_kolom              := 0 ;
+
+  CustomSplitString( v_hdr1,';',v_hdr2,v_hdr1) ;
+
+  while v_hdr1<>'' do
+  begin
+    CustomSplitString( v_hdr1,';',v_hdr2,v_hdr1) ;
+    DbgLov.Columns[v_kolom].Title.caption := v_hdr2 ;
+    CustomSplitString( v_hdr1,';',v_hdr2,v_hdr1) ;
+    DbgLov.Columns[v_kolom].Width := strtoint(v_hdr2) ;
+
+    v_lebar                       := v_lebar + strtoint(v_hdr2) ;
+    CustomSplitString( v_hdr1,';',v_hdr2,v_hdr1) ;
+    if v_hdr2 = 'R' then DbgLov.Columns[v_kolom].Alignment := taRightJustify
+    else if v_hdr2 = 'C' then DbgLov.Columns[v_kolom].Alignment := taCenter
+         else DbgLov.Columns[v_kolom].Alignment := taLeftJustify ;
+
+    v_kolom := v_kolom + 1 ;
+  end ;
+
+
+  v_lebar := v_lebar + 39 ;
+  if v_lebar < 600 then Width := v_lebar else width := 600 ;
+
+
+end;
+
+procedure TFrmLov.CustomSplitString(const InputStr, Delimiter: string;
+  var SubStr1, SubStr2: string);
+var
+  DelimIdx: Integer;
+begin
+  DelimIdx := Pos(Delimiter, InputStr);
+
+  if DelimIdx > 0 then
+  begin
+    SubStr1 := Copy(InputStr, 1, DelimIdx - 1);
+    SubStr2 := Copy(InputStr, DelimIdx + Length(Delimiter), Length(InputStr));
+  end
+  else
+  begin
+    SubStr1 := InputStr;
+    SubStr2 := '';
+  end;
+
+end;
+
 
 {
 procedure TLOVForm.btnSearchClick(Sender: TObject);
