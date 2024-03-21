@@ -71,6 +71,7 @@ object FrmLov: TFrmLov
       Align = alClient
       Color = clWindow
       Columns = <>
+      Options = [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
       TabOrder = 0
       OnKeyDown = DbgLovKeyDown
     end

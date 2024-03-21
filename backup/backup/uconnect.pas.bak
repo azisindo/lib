@@ -17,7 +17,11 @@ type
     FPassword: string;
     FPort: Integer;
     Flogger: string;
-    FProtocol: string;
+    FDb1:string;
+    FDb2:string;
+    FDb3:string;
+    FDb4:string;
+    FDb5:string;
 
     FConnection: TZConnection;
     FDataSource: TDataSource;
@@ -31,12 +35,30 @@ type
     function ExecuteSQL(Const ASQL:string; const Aparam:array of Variant):Integer;overload;
     function Logger:string;
     property DataSource: TDataSource read FDataSource write FDataSource;
+    function SetDb1:string;
   end;
 
 implementation
 
 constructor TConnect.Create();
+{var
+  JsonData: TJSONData;
+  jsonFile: TFileStream;}
 begin
+ { jsonFile := TFileStream.Create('config.json', fmOpenRead);
+
+  JsonData := GetJSON(jsonFile);
+  try
+    FHostName := JsonData.FindPath('host').AsString;
+    FPort     := JsonData.FindPath('port').AsInteger;
+    FDatabaseName := JsonData.FindPath('database').AsString;
+    FUserName := JsonData.FindPath('username').AsString;
+    FPassword := JsonData.FindPath('password').AsString;
+  finally
+    JsonData.Free;
+    jsonFile.Free;
+  end;}
+
   GetVarExternal;
 
   FHostName     := g_HostName;
@@ -44,8 +66,6 @@ begin
   FDatabaseName := g_DatabaseName;
   FUserName     := g_UserName;
   FPassword     := g_Password;
-  FProtocol     := g_protocol;
-
 
   FConnection := TZConnection.Create(nil);
 
@@ -55,25 +75,25 @@ end;
 function TConnect.Connect: Boolean;
 begin
   Result := False;
-  FConnection.Connected:=False;
+
+  GetLibConnection;
 
   FConnection.HostName := FHostName;
   FConnection.Database := FDatabaseName;
   FConnection.User     := FUserName;
   FConnection.Password := FPassword;
   FConnection.Port     := FPort;
-  FConnection.Protocol := FProtocol;
+  FConnection.Protocol := 'mariadb';
   FConnection.LibraryLocation:=GetLibConnection;
 
   try
+    FConnection.Connect;
     Result := True;
-    FConnection.Connected:=True;
-    FConnection.ExecuteDirect('CALL laz.P_INIT('''+g_me_nik+''','''+g_uu_code_aktif+''')' );
   except
     on E: Exception do
     begin
+      Flogger:='Error executing query: '+GetMariaDBLibraryLocation+' '+E.Message;
       Result:=False;
-      Flogger:='Gagal koneksi '+E.Message;
     end;
   end;
  end;
@@ -174,6 +194,11 @@ end;
 function TConnect.Logger: string;
 begin
   Result := Flogger;
+end;
+
+function TConnect.SetDb1: string;
+begin
+  Result:= FDb1;
 end;
 
 {

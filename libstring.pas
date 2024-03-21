@@ -5,7 +5,16 @@ unit Libstring;
 interface
 
 uses
-  Classes, SysUtils,Types,Variants,StrUtils,DateUtils,LCLType;
+  Classes, SysUtils,Types,Variants,StrUtils,DateUtils,LCLType,ZConnection,
+   DB,fpjson, jsonparser,LazFileUtils,Dialogs;
+
+
+Procedure GetVarExternal;
+
+//function setting_koneksi(vConn: TZConnection) : Boolean  ;
+function GetLibConnection: string;
+
+function YesNo(const Msg: string): Boolean;
 
 function Lpad(vString1 : string; vJumlah:integer; vString2 :string=' '):string;
 function Rpad(vString1 : string; vJumlah:integer; vString2 :string=' '):string;
@@ -18,8 +27,127 @@ Function nilai_koma(nilai : string) : double;
 Function dalam_str (nilai : double; smatauang:string='RUPIAH') : string ;
 Function posisi_str(teks, kt : string ; posisi : integer = 1 ) : integer ;
 
+var
+   //Setingan Koneksi
+   g_logger       : String;
+   g_HostName     : string;
+   g_Port         : integer;
+   g_DatabaseName : string;
+   g_UserName     : string;
+   g_Password     : string;
+   g_protocol     : string;
+
+   //Setingan Database
+   g_db1          : String;
+   g_db2          : String;
+   g_db3          : String;
+
+   //Setingan Lib connection
+   g_dir_lib_lx       : String;
+   g_dir_lib_win      : String;
+
+   //seting user
+   g_me_nik          : String;
+   g_uu_code_aktif   : String;
 
 implementation
+
+
+//-------------------setting Connections--------
+Procedure GetVarExternal;
+var
+
+
+  JsonData: TJSONData;
+  jsonFile: TFileStream;
+  {
+    "host": "localhost",
+    "port": 3306,
+    "database": "hrms",
+    "username": "root",
+    "password": "password",
+    "protocol": "mysql",
+    "database1": "hrms",
+    "database2": "hrms",
+    "database3": "hrms",
+    "dirLiblx": "//usr//lib//x86_64-linux-gnu//libmariadb.so.3",
+    "dirLibwin": "C:\\Program Files\\MariaDB 11.1\\lib\\libmariadb.dll"
+  }
+begin
+
+
+    jsonFile := TFileStream.Create('SetVar.json', fmOpenRead);
+    JsonData := GetJSON(jsonFile);
+    try
+      g_HostName      := JsonData.FindPath('host').AsString;
+      g_Port          := JsonData.FindPath('port').AsInteger;
+      g_DatabaseName  := JsonData.FindPath('database').AsString;
+      g_UserName      := JsonData.FindPath('username').AsString;
+      g_Password      := JsonData.FindPath('password').AsString;
+      g_protocol      := JsonData.FindPath('protocol').AsString;
+
+      g_db1           := JsonData.FindPath('database1').AsString;
+      g_db2           := JsonData.FindPath('database2').AsString;
+      g_db3           := JsonData.FindPath('database3').AsString;
+
+      g_dir_lib_lx    := JsonData.FindPath('dirLiblx').AsString;
+      g_dir_lib_win   := JsonData.FindPath('dirLibwin').AsString;
+    finally
+      JsonData.Free;
+      jsonFile.Free;
+    end;
+
+end;
+
+//function setting_koneksi(vConn: TZConnection) : Boolean;
+//begin
+//  vConn.Connected := false;
+//  GetVarExternal;
+//
+//  vConn.HostName := g_HostName;
+//  vConn.Port     := g_Port;
+//  vConn.Database := g_DatabaseName;
+//  vConn.User     := g_UserName;
+//  vConn.Password := g_Password;
+//  vConn.Catalog  := g_protocol;
+//  vConn.LibraryLocation:=GetLibConnection;
+//
+//  // connect
+//  Try
+//    vConn.Connected := true;
+//    g_logger:='Connection Succes';
+//    //vConn.ExecuteDirect();
+//     //vConn.ExecSQL('set @ApplicationCode = "' + qtaf.pubAppCode + qtaf.pubAppVersion + '" ', []) ;
+//     //vConn.ExecSQL('CALL srv.P_INIT_DATABASE('''+g_me_nik+''','''+g_uu_code_aktif+''') ', []) ;
+//    Result := True ;
+//  Except
+//    on E: Exception do
+//    begin
+//      g_logger:=E.Message;
+//      Result:=False;
+//    end;
+//  End ;
+//end;
+
+function GetLibConnection: string;
+begin
+  {$IFDEF UNIX}
+    //Result := '/usr/lib/x86_64-linux-gnu/libmariadb.so.3'; // Ubah sesuai dengan lokasi library MariaDB di Linux
+    Result := g_dir_lib_lx; // Ubah sesuai dengan lokasi library MariaDB di Linux
+  {$ENDIF}
+  {$IFDEF WINDOWS}
+    Result := g_dir_lib_win;
+    //Result := 'C:\Program Files\MariaDB 11.1\lib\libmariadb.dll';// Ubah sesuai dengan lokasi library MariaDB di Windows
+  {$ENDIF}
+end;
+
+//------------------end setting connection----------------------------
+
+function YesNo(const Msg: string): Boolean;
+begin
+//   Result := MessageDlg(Msg, mtConfirmation, [mbOK, mbCancel], 0) = mbOK;
+  result := true;
+end;
 
 function Lpad(vString1 : string; vJumlah:integer; vString2 :string=' '):string;
 var
@@ -209,6 +337,43 @@ begin
     if ( copy(teks,aposisi,plenteks) = kt ) and (hasil = 0) then hasil := aposisi ;
   end ;
   result := hasil ;
+end;
+{
+ SplitString_new( v_hdr1,';',v_hdr2,v_hdr1) ;
+
+ var
+  v_lebar, v_kolom : integer ;
+  v_hdr2  : string;
+  v_hdr1  : string ;
+begin
+  v_hdr1               := FJudulLov;
+  v_lebar              := 0 ;
+  v_kolom              := 0 ;
+
+  SplitString_new( v_hdr1,';',v_hdr2,v_hdr1) ;
+
+  v_hdr2 = out variable
+}
+
+
+procedure SplitString_new(const InputStr, Delimiter: string;
+  var SubStr1, SubStr2: string);
+var
+  DelimIdx: Integer;
+begin
+  DelimIdx := Pos(Delimiter, InputStr);
+
+  if DelimIdx > 0 then
+  begin
+    SubStr1 := Copy(InputStr, 1, DelimIdx - 1);
+    SubStr2 := Copy(InputStr, DelimIdx + Length(Delimiter), Length(InputStr));
+  end
+  else
+  begin
+    SubStr1 := InputStr;
+    SubStr2 := '';
+  end;
+
 end;
 
 

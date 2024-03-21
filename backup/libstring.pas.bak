@@ -6,12 +6,12 @@ interface
 
 uses
   Classes, SysUtils,Types,Variants,StrUtils,DateUtils,LCLType,ZConnection,
-   DB,fpjson, jsonparser,LazFileUtils,Dialogs;
+   DB,fpjson, jsonparser,LazFileUtils;
 
 
 Procedure GetVarExternal;
 
-//function setting_koneksi(vConn: TZConnection) : Boolean  ;
+function setting_koneksi(vConn: TZConnection) : Boolean  ;
 function GetLibConnection: string;
 
 function YesNo(const Msg: string): Boolean;
@@ -35,7 +35,6 @@ var
    g_DatabaseName : string;
    g_UserName     : string;
    g_Password     : string;
-   g_protocol     : string;
 
    //Setingan Database
    g_db1          : String;
@@ -46,20 +45,13 @@ var
    g_dir_lib_lx       : String;
    g_dir_lib_win      : String;
 
-   //seting user
-   g_me_nik          : String;
-   g_uu_code_aktif   : String;
-
 implementation
 
 
-//-------------------setting Connections--------
+
+
 Procedure GetVarExternal;
 var
-
-   g_me_nik          :='14110946';
-   g_uu_code_aktif   :='KZ01';
-
   JsonData: TJSONData;
   jsonFile: TFileStream;
   {
@@ -68,23 +60,22 @@ var
     "database": "hrms",
     "username": "root",
     "password": "password",
-    "protocol": "mysql",
     "database1": "hrms",
     "database2": "hrms",
     "database3": "hrms",
-    "dirLiblx": "//usr//lib//x86_64-linux-gnu//libmariadb.so.3",
-    "dirLibwin": "C:\\Program Files\\MariaDB 11.1\\lib\\libmariadb.dll"
+    "dirLiblx": "/usr/lib/x86_64-linux-gnu/libmariadb.so.3",
+    "dirLibwin": "C:\Program Files\MariaDB 11.1\lib\libmariadb.dll"
   }
 begin
-    jsonFile := TFileStream.Create('SetVar.json', fmOpenRead);
+    jsonFile := TFileStream.Create('setvar.json', fmOpenRead);
     JsonData := GetJSON(jsonFile);
+
     try
       g_HostName      := JsonData.FindPath('host').AsString;
       g_Port          := JsonData.FindPath('port').AsInteger;
       g_DatabaseName  := JsonData.FindPath('database').AsString;
       g_UserName      := JsonData.FindPath('username').AsString;
       g_Password      := JsonData.FindPath('password').AsString;
-      g_protocol      := JsonData.FindPath('protocol').AsString;
 
       g_db1           := JsonData.FindPath('database1').AsString;
       g_db2           := JsonData.FindPath('database2').AsString;
@@ -92,6 +83,7 @@ begin
 
       g_dir_lib_lx    := JsonData.FindPath('dirLiblx').AsString;
       g_dir_lib_win   := JsonData.FindPath('dirLibwin').AsString;
+
     finally
       JsonData.Free;
       jsonFile.Free;
@@ -99,35 +91,34 @@ begin
 
 end;
 
-//function setting_koneksi(vConn: TZConnection) : Boolean;
-//begin
-//  vConn.Connected := false;
-//  GetVarExternal;
-//
-//  vConn.HostName := g_HostName;
-//  vConn.Port     := g_Port;
-//  vConn.Database := g_DatabaseName;
-//  vConn.User     := g_UserName;
-//  vConn.Password := g_Password;
-//  vConn.Catalog  := g_protocol;
-//  vConn.LibraryLocation:=GetLibConnection;
-//
-//  // connect
-//  Try
-//    vConn.Connected := true;
-//    g_logger:='Connection Succes';
-//    //vConn.ExecuteDirect();
-//     //vConn.ExecSQL('set @ApplicationCode = "' + qtaf.pubAppCode + qtaf.pubAppVersion + '" ', []) ;
-//     //vConn.ExecSQL('CALL srv.P_INIT_DATABASE('''+g_me_nik+''','''+g_uu_code_aktif+''') ', []) ;
-//    Result := True ;
-//  Except
-//    on E: Exception do
-//    begin
-//      g_logger:=E.Message;
-//      Result:=False;
-//    end;
-//  End ;
-//end;
+function setting_koneksi(vConn: TZConnection) : Boolean;
+begin
+
+  GetVarExternal;
+
+  vConn.HostName := g_HostName;
+  vConn.Port     := g_Port;
+  vConn.Database := g_DatabaseName;
+  vConn.User     := g_UserName;
+  vConn.Password := g_Password;
+  vConn.LibraryLocation:=GetLibConnection;
+
+  // connect
+  Try
+    vConn.Connected := true;
+    g_logger:='Connection Succes';
+     //vConn.ExecuteDirect();
+     //vConn.ExecSQL('set @ApplicationCode = "' + qtaf.pubAppCode + qtaf.pubAppVersion + '" ', []) ;
+     //vConn.ExecSQL('CALL srv.P_INIT_DATABASE('''+g_me_nik+''','''+g_uu_code_aktif+''') ', []) ;
+    Result := True ;
+  Except
+    on E: Exception do
+    begin
+      g_logger:=E.Message;
+      Result:=False;
+    end;
+  End ;
+end;
 
 function GetLibConnection: string;
 begin
@@ -141,12 +132,9 @@ begin
   {$ENDIF}
 end;
 
-//------------------end setting connection----------------------------
-
 function YesNo(const Msg: string): Boolean;
 begin
-//   Result := MessageDlg(Msg, mtConfirmation, [mbOK, mbCancel], 0) = mbOK;
-  result := true;
+   Result := MessageDlg(Msg, mtConfirmation, [mbOK, mbCancel], 0) = mrOK;
 end;
 
 function Lpad(vString1 : string; vJumlah:integer; vString2 :string=' '):string;

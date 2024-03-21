@@ -11,36 +11,31 @@ var
   FrmLov:TFrmLov;
   ButtonPos: TPoint;
   vSqlForms:string;
+  LValues: TStringList;
   //uses uconnect,Db,ZDataset,uSetVarGlobal;
 begin
   ButtonPos := Button1.ClientToScreen(Point(0, 0));
   FrmLov    := TFrmLov.Create(Self);
   try
     //Judul LOV
-    vSqlForms :='Select * from '+SetVarGlobal.Db1  +'.ms_forms ';
+    vSqlForms :='Select msf_id,ms_descp from '+SetVarGlobal.Db1  +'.ms_forms ';
 
     FrmLov.Caption :='Lov Master Barang';
     FrmLov.SqlLov  := vSqlForms;
-    FrmLov.SetJudulLov :='master';
+    FrmLov.SetJudulLov :='Judul Lov;Id Forms;150;L;Desc;300;L';
     FrmLov.Left    := ButtonPos.X;
     FrmLov.Top     := ButtonPos.Y + Button3.Height;
-    FrmLov.OnSelectValues := @HandleLOVResult;
     FrmLov.ShowModal;
+
+    LValues:=FrmLov.LovSelectedValues;
+    get nilai dari LOV
+    ShowMessage(LValues[0]);
+
   finally
     FrmLov.Free;
   end;
 
  end;
-
- ================procedure pemanggil==================
- procedure HandleLOVResult(const Value: TStringList);
-
-procedure TForm1.HandleLOVResult(const Value: TStringList);
-begin
-  // Disini Anda dapat menggunakan nilai yang dipilih dari LOV
-  ShowMessage('Nilai yang dipilih: ' + Value[0]);
-  edit1.Caption:=Value[0];
-end;
 
 }
 
@@ -52,7 +47,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls, StrUtils,
-  DBGrids,Db, BCMaterialDesignButton,LCLType,uconnect,ZDataset,uSetVarGlobal,libstring  ;
+  DBGrids,Db, LCLType,uconnect,ZDataset,uSetVarGlobal,libstring  ;
 
 type
   { TFrmLov }
@@ -122,10 +117,14 @@ begin
     end;
 
   if key= VK_ESCAPE  then
-    Close;
+     begin
+       Fambil:='F';
+       Close;
+     end;
 
   if (Key=VK_F1)  and (ssShift in Shift) then
     ShowMessage('F1 on dev');
+
 end;
 
 procedure TFrmLov.EdCariLovExit(Sender: TObject);
@@ -247,8 +246,12 @@ begin
           end;
         end
       else
-       SelectedValues.Add('');
+       begin
+         ShowMessage('ada');
+         SelectedValues.Add('');
+         ShowMessage('ada 1');
 
+       end;
       Result := SelectedValues;
     except
       SelectedValues.Free;

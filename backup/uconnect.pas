@@ -3,7 +3,7 @@ unit uConnect;
 interface
 
 uses
-  SysUtils, Classes, ZConnection, ZDataset, DB,fpjson, jsonparser,LazFileUtils;
+  SysUtils, Classes, ZConnection, ZDataset, DB,fpjson, jsonparser,LazFileUtils,Libstring;
 
 type
 
@@ -17,11 +17,7 @@ type
     FPassword: string;
     FPort: Integer;
     Flogger: string;
-    FDb1:string;
-    FDb2:string;
-    FDb3:string;
-    FDb4:string;
-    FDb5:string;
+    FProtocol: string;
 
     FConnection: TZConnection;
     FDataSource: TDataSource;
@@ -35,35 +31,21 @@ type
     function ExecuteSQL(Const ASQL:string; const Aparam:array of Variant):Integer;overload;
     function Logger:string;
     property DataSource: TDataSource read FDataSource write FDataSource;
-    function GetMariaDBLibraryLocation: string;
-    function SetDb1:string;
   end;
 
 implementation
 
 constructor TConnect.Create();
-var
-  JsonData: TJSONData;
-  jsonFile: TFileStream;
 begin
-  jsonFile := TFileStream.Create('config.json', fmOpenRead);
+  GetVarExternal;
 
-  JsonData := GetJSON(jsonFile);
-  try
-    FHostName := JsonData.FindPath('host').AsString;
-    FPort     := JsonData.FindPath('port').AsInteger;
-    FDatabaseName := JsonData.FindPath('database').AsString;
-    FUserName := JsonData.FindPath('username').AsString;
-    FPassword := JsonData.FindPath('password').AsString;
-    FDb1      := JsonData.FindPath('db1').AsString;
-    FDb2      := JsonData.FindPath('db2').AsString;
-    FDb3      := JsonData.FindPath('db3').AsString;
-    FDb4      := JsonData.FindPath('db4').AsString;
-    FDb5      := JsonData.FindPath('db5').AsString;
-  finally
-    JsonData.Free;
-    jsonFile.Free;
-  end;
+  FHostName     := g_HostName;
+  FPort         := g_Port;
+  FDatabaseName := g_DatabaseName;
+  FUserName     := g_UserName;
+  FPassword     := g_Password;
+  FProtocol     := g_protocol;
+
 
   FConnection := TZConnection.Create(nil);
 
@@ -73,23 +55,25 @@ end;
 function TConnect.Connect: Boolean;
 begin
   Result := False;
+  FConnection.Connected:=False;
 
   FConnection.HostName := FHostName;
   FConnection.Database := FDatabaseName;
   FConnection.User     := FUserName;
   FConnection.Password := FPassword;
   FConnection.Port     := FPort;
-  FConnection.Protocol := 'mariadb';
-  FConnection.LibraryLocation:=GetMariaDBLibraryLocation;
+  FConnection.Protocol := FProtocol;
+  FConnection.LibraryLocation:=GetLibConnection;
 
   try
-    FConnection.Connect;
     Result := True;
+    FConnection.Connected:=True;
+    FConnection.ExecuteDirect('CALL laz.P_INIT('''+g_me_nik+''','''+g_uu_code_aktif+''')' );
   except
     on E: Exception do
     begin
-      Flogger:='Error executing query: '+GetMariaDBLibraryLocation+' '+E.Message;
       Result:=False;
+      Flogger:='Gagal koneksi '+E.Message;
     end;
   end;
  end;
@@ -190,22 +174,6 @@ end;
 function TConnect.Logger: string;
 begin
   Result := Flogger;
-end;
-
-
-function TConnect.GetMariaDBLibraryLocation: string;
-begin
-  {$IFDEF UNIX}
-    Result := '/usr/lib/x86_64-linux-gnu/libmariadb.so.3'; // Ubah sesuai dengan lokasi library MariaDB di Linux
-  {$ENDIF}
-  {$IFDEF WINDOWS}
-    Result := 'C:\Program Files\MariaDB 11.1\lib\libmariadb.dll'; // Ubah sesuai dengan lokasi library MariaDB di Windows
-  {$ENDIF}
-end;
-
-function TConnect.SetDb1: string;
-begin
-  Result:= FDb1;
 end;
 
 {
